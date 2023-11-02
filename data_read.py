@@ -10,7 +10,11 @@ bag = rosbag.Bag(bag_filepath)
 # time_list = []
 
 #双目
-topic_name = "/master_cam/triggers"
+# topic_name = "/master_cam/triggers"
+# type_list = [] 
+# time_list = []
+
+topic_name = "/davis_left/ext_trigger"
 type_list = [] 
 time_list = []
 
@@ -43,12 +47,10 @@ for topic, msg, t in bag.read_messages():
             status_list.append(status)
             status_time_list.append(timestamp)
     elif (topic == topic_name):
-        timestamp = msg.timestamp.to_sec()
-        trigger_type = msg.type
-        # print(type(trigger_type))
-        if trigger_type not in [6,7,8,9]:
-            type_list.append(trigger_type)
-            time_list.append(timestamp)
+        timestamp = msg.header.stamp.to_sec()
+        trigger_type = msg.point.x
+        type_list.append(trigger_type)
+        time_list.append(timestamp)
 
 
 for topic, msg, t in bag.read_messages():

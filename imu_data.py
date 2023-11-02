@@ -1,5 +1,6 @@
 import rosbag
 import rospy
+import math
 
 bag_filepath = "record.bag"
 bag = rosbag.Bag(bag_filepath)
@@ -10,9 +11,15 @@ bag = rosbag.Bag(bag_filepath)
 # time_list = []
 
 #双目
-topic_name = "/master_cam/triggers"
+# topic_name = "/master_cam/triggers"
+# type_list = [] 
+# time_list = []
+
+
+topic_name = "/davis_left/ext_trigger"
 type_list = [] 
 time_list = []
+
 
 imu_status_topic_name = "/imu/status"
 status_list = []
@@ -37,14 +44,11 @@ for topic, msg, t in bag.read_messages():
             status_time_list.append(timestamp)
     else:
         if (topic == topic_name): #记录相机受到imu信号触发的时间戳
-            timestamp = msg.timestamp.to_sec()
-            trigger_type = msg.type
-            # print(type(trigger_type))
-            if trigger_type not in [6,7,8,9]:
-                type_list.append(trigger_type)
-                time_list.append(timestamp)
-# print(time_list)
-# print(status_time_list)
+            timestamp = msg.header.stamp.to_sec()
+            trigger_type = msg.point.x
+            type_list.append(trigger_type)
+            time_list.append(timestamp)
+            
 seq_all_list=[]
 time_ref_all_list=[]
 
@@ -75,8 +79,86 @@ print('imu_time:',status_time_list)
 
 print('imu_time_ref:',time_ref_list)
 
-num_time_list = len(time_list)#求每段的offset_time
+# 首位对齐
+def aligning(a_list,b_list):
+    a=abs(a_list[0]-b_list[0])
+    b=abs(a_list[0]-b_list[1])
+    c=abs(a_list[1]-b_list[0])
+    if (min(a,b,c) == a):
+        return a_list,b_list
+    elif (min(a,b,c) == b):
+        return a_list,b_list[1:]
+    elif (min(a,b,c) == c):
+        return a_list[1:],b_list
+    
+time_list,status_time_list = aligning(time_list,status_time_list)
+
+# 删除缺位，方便offset time 计算
+davis_period_list=[]
+imu_period_list=[]
+
+def period_list(list):
+    period_list=[]
+    for i in range(len(list)-1):
+        period = list[i+1]-list[i]
+        period_list.append(period)
+    average_period=(list[len(list)-1]-list[0])/(len(list)-1)
+    return average_period,period_list
+
+davis_average_period,davis_period_list = period_list (time_list)
+imu_average_period,imu_period_list = period_list (status_time_list)
+
+# 判断缺几个
+def count_number(period,avg_period):
+    count_number=0
+    while(1):
+        count_number+=1
+        if period < (count_number+0.8)*avg_period :
+            break
+    return count_number
+
+davis_count_number=[0]
+
+i=0
+davis_count_number=[]
+while i < len(davis_period_list) :
+    davis_count_number.append(0)
+    if (davis_period_list[i] > 1.2*davis_average_period):
+        num=count_number(davis_period_list[i],davis_average_period)
+        for j in range(num):
+            davis_count_number.append(1)
+    i+=1
+davis_count_number.append(0)
+
+i=0
+imu_count_number=[]
+while i < len(imu_period_list) :
+    imu_count_number.append(0)
+    if (imu_period_list[i] > 1.2*imu_average_period):
+        num=count_number(imu_period_list[i],imu_average_period)
+        for j in range(num):
+            imu_count_number.append(1)
+    i+=1
+imu_count_number.append(0)
+
+i=0
+for status in imu_count_number:
+    if status == 1:
+        time_list.pop(i)
+    else:
+        i+=1
+      
+i=0
+for status in davis_count_number:
+    if status == 1:
+        time_ref_list.pop(i)
+    else:
+        i+=1 
+
+
 offset_list=[]
+num_time_list = len(time_list)#求每段的offset_time
+
 for i in range(num_time_list-1):
     offest=(time_list[i]+time_list[i+1]-time_ref_list[i]-time_ref_list[i+1])/2
     offset_list.append(offest)
@@ -92,8 +174,6 @@ def add_offset(ref_time,offset_time):#调整时间戳
     
     
 j=0
-# print(num_time_list)
-# print(status_seq_list[3])
 
 with rosbag.Bag('output.bag', 'w') as outbag:
     for topic, msg, t in rosbag.Bag(bag_filepath).read_messages():
@@ -103,7 +183,6 @@ with rosbag.Bag('output.bag', 'w') as outbag:
             
             start_seq=status_seq_list[j]
             end_seq=status_seq_list[j+1]
-            
             seq=msg.header.seq
             num=seq_all_list.index(seq)
             
@@ -116,22 +195,6 @@ with rosbag.Bag('output.bag', 'w') as outbag:
                     # print(j)
 
         elif topic == '/master_cam/triggers':
-
             outbag.write(topic, msg, msg.timestamp)
         else:
             outbag.write(topic, msg, msg.header.stamp) 
-
-
-    # print(j)            
-        
-                    
-
-
-# print('type_list:',type_list)
-# print('DAVIS_time:',time_list)
-
-# print('imu_seq:',status_seq_list)
-# print('imu_staus:',status_list)
-# print('imu_time:',status_time_list)
-
-# print('imu_time_ref:',time_ref_list)
