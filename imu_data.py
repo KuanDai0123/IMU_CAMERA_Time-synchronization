@@ -20,7 +20,6 @@ topic_name = "/davis_left/ext_trigger"
 type_list = [] 
 time_list = []
 
-
 imu_status_topic_name = "/imu/status"
 status_list = []
 status_time_list = []
@@ -93,7 +92,7 @@ def aligning(a_list,b_list):
     
 time_list,status_time_list = aligning(time_list,status_time_list)
 
-# 删除缺位，方便offset time 计算
+# 删除缺位，方便offset time计算
 davis_period_list=[]
 imu_period_list=[]
 
