@@ -67,18 +67,6 @@ for topic, msg, t in bag.read_messages():
             timestamp = msg.header.stamp.to_sec()
             imu_data_time_list.append(timestamp)
             # print(msg)
-    elif (topic == capture_node_camera_image_topic_name): 
-        # print(msg)
-        data=msg.data
-        image_list.append(data)
-    elif (topic == capture_node_events): 
-        # print(msg)
-        events = msg.events
-        events_list.append(events)
-
-
-
-
 
 
 # print('type_list:',type_list)

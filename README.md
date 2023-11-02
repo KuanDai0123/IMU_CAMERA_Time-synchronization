@@ -3,6 +3,7 @@
 # 使用注意事项
 1 录制的rosbag必须包括/imu/data /imu/time_ref /imu/trigger /capture_node/triggers（双目为/master_cam/triggers）
 2 录制的rosbag位置和名称修改在`imu_data.py`的第四行，重新打包的rosbag名称为`output.bag`，位置处于代码所在文件夹
+3 代码前几行需根据相机录制状态更改
 
 # imu_data.py：
 ## 作用：
