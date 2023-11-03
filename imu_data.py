@@ -2,7 +2,7 @@ import rosbag
 import rospy
 import math
 
-bag_filepath = "record.bag"
+bag_filepath = "test.bag"
 bag = rosbag.Bag(bag_filepath)
 
 #单目
@@ -69,6 +69,11 @@ for topic, msg, t in bag.read_messages():#用上方得到的seq筛选出需要�
             # if seq in status_seq_list:
             #     print(msg)
 
+
+time_list.pop(10)
+time_list.pop(10)
+time_list.pop(10)
+
 print('type_list:',type_list)
 print('DAVIS_time:',time_list)
 
@@ -77,6 +82,8 @@ print('imu_staus:',status_list)
 print('imu_time:',status_time_list)
 
 print('imu_time_ref:',time_ref_list)
+
+
 
 # 首位对齐
 def aligning(a_list,b_list):
@@ -112,7 +119,7 @@ def count_number(period,avg_period):
     count_number=0
     while(1):
         count_number+=1
-        if period < (count_number+0.8)*avg_period :
+        if period < (count_number+1.2)*avg_period :
             break
     return count_number
 
@@ -140,19 +147,38 @@ while i < len(imu_period_list) :
     i+=1
 imu_count_number.append(0)
 
+# print(imu_count_number)
+# print(davis_count_number)
+
+# print(len(imu_count_number))
+# print(len(davis_count_number))
+
+    
 i=0
-for status in imu_count_number:
-    if status == 1:
-        time_list.pop(i)
-    else:
-        i+=1
-      
-i=0
-for status in davis_count_number:
-    if status == 1:
-        time_ref_list.pop(i)
-    else:
-        i+=1 
+j=0
+r=0
+while (1):
+    if davis_count_number[i] != imu_count_number[i]:
+        if davis_count_number[i]==1:
+            time_ref_list.pop(r)
+            status_time_list.pop(r)
+            status_seq_list.pop(r)
+        elif imu_count_number[i]==1:
+            time_list.pop(j)
+    elif davis_count_number[i]==0:
+        j+=1
+        r+=1
+    i+=1
+    # print(i,j,r)
+    if i >= min(len(davis_count_number),len(imu_count_number)):
+        break
+    
+# print(time_list)
+# print(status_time_list)
+            
+            
+# print('DAVIS_time:',time_list)
+# print('imu_time_ref:',time_ref_list)
 
 
 offset_list=[]
